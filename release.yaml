@@ -1,0 +1,23 @@
+name: Production Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    uses: daya-inspirasi/workflow-template/.github/workflows/build-deploy.yaml@main
+    with:
+      image_name: registry.sevencode.io/${{ github.repository }}
+      version: ${{ github.ref_name }}
+      enable_tailscale: false
+      release_env: prod
+      runner: '["self-hosted", "Linux", "ARM64"]'
+    secrets:
+      REGISTRY_SERVER: ${{ vars.REGISTRY_SERVER }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      TAILSCALE_PREAUTH_KEY: ${{ secrets.TAILSCALE_PREAUTH_KEY }}
+      TAILSCALE_SERVER: ${{ secrets.TAILSCALE_SERVER }}
+      DEPLOYMENT_REPO: ${{ vars.DEPLOYMENT_REPO }}
