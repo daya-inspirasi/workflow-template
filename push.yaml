@@ -1,0 +1,24 @@
+name: Development Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    uses: daya-inspirasi/workflow-template/.github/workflows/build-deploy.yaml@main
+    with:
+      image_name: registry.sevencode.io/${{ github.repository }}
+      version: ${{ github.sha }}
+      enable_tailscale: true
+      release_env: dev
+      runner: '["ubuntu-24.04"]'
+    secrets:
+      REGISTRY_SERVER: ${{ vars.REGISTRY_SERVER }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      TAILSCALE_PREAUTH_KEY: ${{ secrets.TAILSCALE_PREAUTH_KEY }}
+      TAILSCALE_SERVER: ${{ secrets.TAILSCALE_SERVER }}
+      DEPLOYMENT_REPO: ${{ vars.DEPLOYMENT_REPO }}
