@@ -11,7 +11,7 @@ on:
         required: true
       runner:
         type: string
-        default: ubuntu-24.04
+        default: '["ubuntu-24.04"]'
       enable_tailscale:
         type: boolean
         default: false
@@ -36,7 +36,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
 
     permissions:
       contents: write
