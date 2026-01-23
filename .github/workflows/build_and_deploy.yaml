@@ -1,4 +1,4 @@
-name: Docker Build & Push Image
+name: Build & Deploy
 
 on:
   workflow_call:
@@ -15,7 +15,12 @@ on:
       enable_tailscale:
         type: boolean
         default: false
+      release_env:
+        type: string
+        default: dev
     secrets:
+      REGISTRY_SERVER:
+        required: true
       REGISTRY_USERNAME:
         required: true
       REGISTRY_PASSWORD:
@@ -24,16 +29,23 @@ on:
         required: true
       TAILSCALE_PREAUTH_KEY:
         required: true
+      SSH_PRIVATE_KEY:
+        required: true
+      DEPLOYMENT_REPO:
+        required: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ${{ inputs.runner }}
 
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
+      - name: Checkout application source code
+        uses: actions/checkout@v4
+
       - name: Install Tailscale
         if: inputs.enable_tailscale
         run: |
@@ -49,23 +61,41 @@ jobs:
             --advertise-tags=tag:ci \
             --accept-routes
 
-      - name: Checkout application repository
-        uses: actions/checkout@v4
-
-      - name: Setup Docker Buildx
+      - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login To Private Registry
+      - name: Login to Harbor
         uses: docker/login-action@v3
         with:
-          registry: registry.sevencode.io
+          registry: ${{ secrets.REGISTRY_SERVER }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - uses: docker/build-push-action@v6
+      - name: Build and push image
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
             ${{ inputs.image_name }}:${{ inputs.version }}
             ${{ inputs.image_name }}:latest
+
+      - name: Checkout kustomize repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.DEPLOYMENT_REPO }}
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Update kustomize image
+        run: |
+          cd $GITHUB_REPOSITORY/${{ inputs.release_env }}
+          kustomize edit set image app=${{ inputs.image_name }}:${{ inputs.release_env }}
+
+      - name: Commit and push
+        run: |
+          cd $GITHUB_REPOSITORY
+          git config user.name "Bot"
+          git config user.email "bot@dayainspirasi.id"
+          git add .
+          git commit -am "chore: deploy ${{ inputs.release_env }}" || echo "No changes to commit"
+          git push
