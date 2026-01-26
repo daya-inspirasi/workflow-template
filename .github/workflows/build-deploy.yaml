@@ -87,7 +87,7 @@ jobs:
       - name: Update kustomize image
         run: |
           cd $GITHUB_REPOSITORY/${{ inputs.release_env }}
-          kustomize edit set image app=${{ inputs.image_name }}:${{ inputs.release_env }}
+          kustomize edit set image app=${{ inputs.image_name }}:${{ inputs.version }}
 
       - name: Commit and push
         run: |
