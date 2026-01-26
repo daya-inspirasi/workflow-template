@@ -35,10 +35,10 @@ USER 10001:10001
 WORKDIR /home/app
 
 COPY --from=builder /app /home/app/app
-COPY --from=builder --chown=app:app /home/app/startup.sh .
+COPY --from=builder --chown=app:app /startup.sh /home/app/startup.sh
 
 ENV ENVIRONMENT=${RELEASE_ENV}
-CMD ["/bin/bash","-c","./home/app/startup.sh ${ENVIRONMENT}"]
+CMD ["/bin/sh","-c","/home/app/startup.sh ${ENVIRONMENT}"]
 
 
 
