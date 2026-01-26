@@ -1,0 +1,44 @@
+# -------- BUILD STAGE --------
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 go build -o app ./cmd
+
+# -------- RUNTIME STAGE --------
+FROM alpine:3.23.2
+ARG RELEASE_ENV
+
+ENV TZ=Asia/Jakarta
+
+# Install packages as root
+RUN apk add --no-cache \
+    autossh \
+    openssh-client \
+    curl \
+    ca-certificates
+
+RUN addgroup -g 10001 -S app \
+ && adduser  -u 10001 -S app -G app
+
+# Prepare SSH directory
+RUN mkdir -p /home/app/.ssh \
+ && chown -R app:app /home/app \
+ && chmod 700 /home/app/.ssh
+
+USER 10001:10001
+WORKDIR /home/app
+
+COPY --from=builder /app /home/app/app
+COPY --from=builder --chown=app:app /home/app/startup.sh .
+
+ENV ENVIRONMENT=${RELEASE_ENV}
+CMD ["/bin/bash","-c","./home/app/startup.sh ${ENVIRONMENT}"]
+
+
+
